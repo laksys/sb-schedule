@@ -1,0 +1,111 @@
+// Config.java
+package org.example;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
+
+@Configuration
+public class Config {
+	@Bean
+	ThreadPoolTaskScheduler getScheduler() {
+		ThreadPoolTaskScheduler threadPoolTaskScheduler = new ThreadPoolTaskScheduler();
+		threadPoolTaskScheduler.setPoolSize(2);
+		return threadPoolTaskScheduler;
+	}
+	
+}
+
+//Task.java
+package org.example;
+
+import org.springframework.stereotype.Component;
+
+@Component
+public class Task {
+	public void doIt(String msg, int times) {
+		System.out.println("Task starts...");
+		for(int i=0; i<times; i++)
+			System.out.println(msg);
+		System.out.println("Task ends...");
+	}
+//	public void nextOne() {
+//		for(int i=0; i<4; i++)
+//			System.out.println("welcome to wonderful world of computers!");
+//	}
+}
+
+
+//TaskController.java
+package org.example;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/task")
+public class TaskController {
+
+	@Autowired
+	private TaskService service;
+
+	@GetMapping("/t1")
+	public String task1(
+			@RequestParam int hour,
+			@RequestParam int minute,
+			@RequestParam String msg,
+			@RequestParam int times
+			) {
+		service.specificTime(hour, minute, msg, times);
+		return "Task scheduled at " + hour + ":" + minute;
+	}
+	
+}
+
+//TaskService.java
+package org.example;
+
+import java.util.Calendar;
+import java.util.Date;
+import java.util.concurrent.ScheduledFuture;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
+import org.springframework.stereotype.Service;
+
+@Service
+public class TaskService {
+	@Autowired
+	ThreadPoolTaskScheduler scheduler;
+	
+	@Autowired
+	Task task;
+
+	public void specificTime(int hr, int mm, String msg, int times) {
+		Calendar cal = Calendar.getInstance();
+		
+		cal.set(Calendar.HOUR_OF_DAY, hr);
+		cal.set(Calendar.MINUTE, mm);
+		cal.set(Calendar.SECOND, 0);
+		cal.set(Calendar.MILLISECOND, 0);
+		
+		Date time = cal.getTime();
+
+//		if (time.before(new Date())) {
+//			cal.add(Calendar.DAY_OF_YEAR, 1); // next day
+//			time = cal.getTime();
+//		}
+		
+		scheduler.schedule(()-> task.doIt(msg, times), time.toInstant());
+		
+		
+		//scheduler.schedule(()-> System.out.println("hi"), time.toInstant());
+		
+		System.out.println("Task scheduled for " + time);
+	}
+}
+
+
